@@ -27,33 +27,7 @@ systemctl restart sshd
 systemctl restart ssh
 
 # ---------------------------
-# 2️⃣ Network (net01 + net12)
-# ---------------------------
-cat >/etc/systemd/network/10-enp1.network <<'EOF'
-[Match]
-Name=enp1s0
-
-[Network]
-Address=10.0.1.3/24
-Gateway=10.0.1.1
-DNS=10.0.1.1
-EOF
-
-cat >/etc/systemd/network/20-enp2.network <<'EOF'
-[Match]
-Name=enp2s0
-
-[Network]
-Address=10.0.12.2/24
-Gateway=10.0.12.1
-DNS=10.0.12.1
-EOF
-
-systemctl enable systemd-networkd
-systemctl restart systemd-networkd
-
-# ---------------------------
-# 3️⃣ Apache reverse proxy
+# 2️⃣ Apache reverse proxy
 # ---------------------------
 a2enmod proxy proxy_http headers rewrite
 
@@ -91,7 +65,7 @@ apachectl -t
 systemctl reload apache2
 
 # ---------------------------
-# 4️⃣ Webapp setup
+# 3️⃣ Webapp setup
 # ---------------------------
 if [ ! -d "$APP_DIR" ]; then
   echo "Webapp directory not found: $APP_DIR" >&2
@@ -107,5 +81,33 @@ pip install -r requirements.txt
 python app/init_db.py
 
 chmod +x ./scripts/run.sh ./scripts/setup.sh ./scripts/test.sh ./scripts/attack_timed_sqli.py
+
+echo "Webapp setup complete."
+
+# ---------------------------
+# 4️⃣ Network (net01 + net12)
+# ---------------------------
+cat >/etc/systemd/network/10-enp1.network <<'EOF'
+[Match]
+Name=enp1s0
+
+[Network]
+Address=10.0.1.3/24
+Gateway=10.0.1.1
+DNS=10.0.1.1
+EOF
+
+cat >/etc/systemd/network/20-enp2.network <<'EOF'
+[Match]
+Name=enp2s0
+
+[Network]
+Address=10.0.12.2/24
+Gateway=10.0.12.1
+DNS=10.0.12.1
+EOF
+
+systemctl enable systemd-networkd
+systemctl restart systemd-networkd
 
 echo "Host1 setup complete. Start the app with ${APP_DIR}/scripts/run.sh"

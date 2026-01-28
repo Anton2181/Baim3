@@ -41,33 +41,7 @@ systemctl restart sshd
 systemctl restart ssh
 
 # ---------------------------
-# 2️⃣ Network (net12 + net23)
-# ---------------------------
-cat >/etc/systemd/network/10-enp1.network <<'EOF'
-[Match]
-Name=enp1s0
-
-[Network]
-Address=10.0.12.3/24
-Gateway=10.0.12.1
-DNS=10.0.12.1
-EOF
-
-cat >/etc/systemd/network/20-enp2.network <<'EOF'
-[Match]
-Name=enp2s0
-
-[Network]
-Address=10.0.23.2/24
-Gateway=10.0.23.1
-DNS=10.0.23.1
-EOF
-
-systemctl enable systemd-networkd
-systemctl restart systemd-networkd
-
-# ---------------------------
-# 3️⃣ Install Webmin
+# 2️⃣ Install Webmin
 # ---------------------------
 tmp_dir=$(mktemp -d)
 cleanup() { rm -rf "${tmp_dir}"; }
@@ -130,5 +104,33 @@ elif [[ -x /etc/init.d/webmin ]]; then
 elif [[ -x /etc/webmin/restart ]]; then
   /etc/webmin/restart >/dev/null 2>&1 || true
 fi
+
+echo "Webmin setup complete."
+
+# ---------------------------
+# 3️⃣ Network (net12 + net23)
+# ---------------------------
+cat >/etc/systemd/network/10-enp1.network <<'EOF'
+[Match]
+Name=enp1s0
+
+[Network]
+Address=10.0.12.3/24
+Gateway=10.0.12.1
+DNS=10.0.12.1
+EOF
+
+cat >/etc/systemd/network/20-enp2.network <<'EOF'
+[Match]
+Name=enp2s0
+
+[Network]
+Address=10.0.23.2/24
+Gateway=10.0.23.1
+DNS=10.0.23.1
+EOF
+
+systemctl enable systemd-networkd
+systemctl restart systemd-networkd
 
 echo "Host2 setup complete. Webmin available via ${WEBAPP_HOST}${WEBMIN_WEBPREFIX}."
