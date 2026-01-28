@@ -1,0 +1,9 @@
+<network>
+  <name>net23</name>
+  <bridge name='virbr23' stp='on' delay='0'/>
+  <ip address='10.0.23.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='10.0.23.2' end='10.0.23.254'/>
+    </dhcp>
+  </ip>
+</network>

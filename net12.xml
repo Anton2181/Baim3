@@ -1,0 +1,9 @@
+<network>
+  <name>net12</name>
+  <bridge name='virbr12' stp='on' delay='0'/>
+  <ip address='10.0.12.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='10.0.12.2' end='10.0.12.254'/>
+    </dhcp>
+  </ip>
+</network>

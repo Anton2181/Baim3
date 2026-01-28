@@ -1,0 +1,9 @@
+<network>
+  <name>net34</name>
+  <bridge name='virbr34' stp='on' delay='0'/>
+  <ip address='10.0.34.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='10.0.34.2' end='10.0.34.254'/>
+    </dhcp>
+  </ip>
+</network>
