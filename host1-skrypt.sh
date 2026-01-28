@@ -86,7 +86,31 @@ chmod +x ./scripts/run.sh ./scripts/setup.sh ./scripts/test.sh ./scripts/attack_
 echo "Webapp setup complete."
 
 # ---------------------------
-# 4️⃣ Network (net01 + net12)
+# 4️⃣ Systemd service
+# ---------------------------
+cat >/etc/systemd/system/webapp.service <<EOF
+[Unit]
+Description=CTF Webapp (Flask)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=${APP_DIR}
+Environment=PATH=${APP_DIR}/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=${APP_DIR}/.venv/bin/python ${APP_DIR}/scripts/run.sh
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now webapp.service
+
+# ---------------------------
+# 5️⃣ Network (net01 + net12)
 # ---------------------------
 cat >/etc/systemd/network/10-enp1.network <<'EOF'
 [Match]
