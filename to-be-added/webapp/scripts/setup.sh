@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WEBAPP_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
 PORT=5000
 WEBAPP_IP="${WEBAPP_IP:-10.0.12.2}"
 WEBAPP_NETMASK="${WEBAPP_NETMASK:-255.255.255.0}"
@@ -151,13 +154,13 @@ setup_python_env() {
     ${cmd_prefix} apt-get install -y python3-venv >/dev/null 2>&1 || true
   fi
 
-  python3 -m venv .venv
+  python3 -m venv "${WEBAPP_DIR}/.venv"
   # shellcheck disable=SC1091
-  source .venv/bin/activate
+  source "${WEBAPP_DIR}/.venv/bin/activate"
   pip install --upgrade pip
-  pip install -r requirements.txt
+  pip install -r "${WEBAPP_DIR}/requirements.txt"
 
-  python app/init_db.py
+  python "${WEBAPP_DIR}/app/init_db.py"
 }
 
 main() {
@@ -165,7 +168,8 @@ main() {
   configure_apache
   setup_python_env
 
-  chmod +x ./scripts/run.sh ./scripts/setup.sh ./scripts/test.sh ./scripts/attack_timed_sqli.py
+  chmod +x "${WEBAPP_DIR}/scripts/run.sh" "${WEBAPP_DIR}/scripts/setup.sh" \
+    "${WEBAPP_DIR}/scripts/test.sh" "${WEBAPP_DIR}/scripts/attack_timed_sqli.py"
   echo "Setup complete. Run ./scripts/run.sh to start the app."
 }
 
