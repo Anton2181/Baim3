@@ -6,7 +6,8 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-APP_DIR="${APP_DIR:-/root/webapp}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="${APP_DIR:-${SCRIPT_DIR}/to-be-added/webapp}"
 WEBAPP_PUBLIC_IP="${WEBAPP_PUBLIC_IP:-10.0.1.3}"
 WEBAPP_INTERNAL_IP="${WEBAPP_INTERNAL_IP:-10.0.12.2}"
 WEBMIN_HOST="${WEBMIN_HOST:-10.0.12.3}"
