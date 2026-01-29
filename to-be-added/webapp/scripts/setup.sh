@@ -94,6 +94,7 @@ configure_apache() {
   ${cmd_prefix} a2enmod proxy proxy_http headers rewrite >/dev/null 2>&1 || true
 
   # Write site config
+  set +u
   ${cmd_prefix} tee /etc/apache2/sites-available/webapp.conf >/dev/null <<EOF_APACHE
 <VirtualHost *:80>
     ServerName ${WEBAPP_SERVER_NAME}
@@ -123,6 +124,7 @@ configure_apache() {
     ProxyPassReverse / http://127.0.0.1:${PORT}/
 </VirtualHost>
 EOF_APACHE
+  set -u
 
   # Disable default site, enable ours (use .conf names explicitly)
   ${cmd_prefix} a2dissite 000-default.conf >/dev/null 2>&1 || true
