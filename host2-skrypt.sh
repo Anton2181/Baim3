@@ -1,5 +1,10 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
+set -e
+
+if [ "$EUID" -ne 0 ]; then
+  echo "This script must be run as root." >&2
+  exit 1
+fi
 
 WEBMIN_VERSION="1.920"
 WEBMIN_TARBALL="webmin-${WEBMIN_VERSION}.tar.gz"
@@ -17,79 +22,35 @@ WEBMIN_CONFIG_DIR="${WEBMIN_CONFIG_DIR:-/etc/webmin}"
 WEBMIN_LOG_DIR="${WEBMIN_LOG_DIR:-/var/webmin}"
 WEBMIN_PERL_PATH="${WEBMIN_PERL_PATH:-/usr/bin/perl}"
 WEBAPP_IP="${WEBAPP_IP:-10.0.12.2}"
-WEBMIN_WEBPREFIX="${WEBMIN_WEBPREFIX:-/admin/infra}"
 WEBAPP_HOST="${WEBAPP_HOST:-10.0.1.3}"
+WEBMIN_WEBPREFIX="${WEBMIN_WEBPREFIX:-/admin/infra}"
 WEBMIN_REDIRECT_HOST="${WEBMIN_REDIRECT_HOST:-${WEBAPP_HOST}}"
 
-configure_network() {
-  local port="${WEBMIN_HTTP_PORT}"
-  local nat_iface
-  local internal_iface
-  local ifaces
-  nat_iface=$(ip route show default 2>/dev/null | awk '{print $5}' | head -n 1)
-  ifaces=$(ip -o link show | awk -F': ' '{print $2}' | grep -v '^lo$' || true)
-  internal_iface=$(echo "${ifaces}" | grep -v "^${nat_iface}$" | head -n 1)
+# ---------------------------
+# 1️⃣ Base packages + SSH
+# ---------------------------
+apt update
+apt install -y openssh-server curl perl python3-venv
+rm -f /etc/ssh/ssh_host_*
+DEBIAN_FRONTEND=noninteractive dpkg-reconfigure openssh-server
 
-  if [[ -n ${nat_iface} && -n ${internal_iface} ]]; then
-    tee /etc/network/interfaces >/dev/null <<EOF
-# Managed by webmin-host/setup.sh
-auto lo
-iface lo inet loopback
+sed -i 's/^#\?\s*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+sed -i 's/^#\?\s*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
 
-auto ${nat_iface}
-iface ${nat_iface} inet dhcp
+systemctl restart sshd
+systemctl restart ssh
 
-auto ${internal_iface}
-iface ${internal_iface} inet static
-  address ${WEBMIN_IP}
-  netmask ${WEBMIN_NETMASK}
-EOF
-    systemctl restart networking >/dev/null 2>&1 || \
-      service networking restart >/dev/null 2>&1 || true
-  fi
-
-  if command -v ufw >/dev/null 2>&1; then
-    ufw insert 1 allow from "${WEBAPP_IP}" to any port "${port}" proto tcp >/dev/null || true
-    ufw insert 2 deny "${port}/tcp" >/dev/null || true
-  elif command -v firewall-cmd >/dev/null 2>&1; then
-    firewall-cmd --add-rich-rule="rule family=ipv4 priority=10 source address=${WEBAPP_IP} port port=${port} protocol=tcp accept" \
-      --permanent >/dev/null 2>&1 || true
-    firewall-cmd --add-rich-rule="rule family=ipv4 priority=100 port port=${port} protocol=tcp drop" \
-      --permanent >/dev/null 2>&1 || true
-    firewall-cmd --reload >/dev/null 2>&1 || true
-  elif command -v iptables >/dev/null 2>&1; then
-    iptables -C INPUT -p tcp -s "${WEBAPP_IP}" --dport "${port}" -j ACCEPT >/dev/null 2>&1 || \
-      iptables -I INPUT -p tcp -s "${WEBAPP_IP}" --dport "${port}" -j ACCEPT >/dev/null 2>&1 || true
-    iptables -C INPUT -p tcp --dport "${port}" -j DROP >/dev/null 2>&1 || \
-      iptables -A INPUT -p tcp --dport "${port}" -j DROP >/dev/null 2>&1 || true
-  fi
-}
-
-if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
-  echo "This script must be run as root (use sudo)." >&2
-  exit 1
-fi
-
-apt-get update -y >/dev/null 2>&1 || true
-apt-get install -y curl perl postgresql-client python3.13-venv >/dev/null 2>&1 || true
-
+# ---------------------------
+# 2️⃣ Install Webmin
+# ---------------------------
 tmp_dir=$(mktemp -d)
-cleanup() {
-  rm -rf "${tmp_dir}"
-}
+cleanup() { rm -rf "${tmp_dir}"; }
 trap cleanup EXIT
 
-configure_network
-
-echo "Downloading Webmin ${WEBMIN_VERSION} from SourceForge..."
 curl -L -o "${tmp_dir}/${WEBMIN_TARBALL}" "${WEBMIN_URL}"
-
-echo "Extracting archive..."
 tar -xzf "${tmp_dir}/${WEBMIN_TARBALL}" -C "${tmp_dir}"
 
 cd "${tmp_dir}/webmin-${WEBMIN_VERSION}"
-
-echo "Running Webmin setup (accepting defaults)..."
 cat <<EOF | ./setup.sh "${INSTALL_DIR}"
 ${WEBMIN_CONFIG_DIR}
 ${WEBMIN_LOG_DIR}
@@ -144,5 +105,32 @@ elif [[ -x /etc/webmin/restart ]]; then
   /etc/webmin/restart >/dev/null 2>&1 || true
 fi
 
-echo "Webmin ${WEBMIN_VERSION} installed in ${INSTALL_DIR}."
-echo "Login: ${WEBMIN_LOGIN}"
+echo "Webmin setup complete."
+
+# ---------------------------
+# 3️⃣ Network (net12 + net23)
+# ---------------------------
+cat >/etc/systemd/network/10-enp1.network <<'EOF'
+[Match]
+Name=enp1s0
+
+[Network]
+Address=10.0.12.3/24
+Gateway=10.0.12.1
+DNS=10.0.12.1
+EOF
+
+cat >/etc/systemd/network/20-enp2.network <<'EOF'
+[Match]
+Name=enp2s0
+
+[Network]
+Address=10.0.23.2/24
+Gateway=10.0.23.1
+DNS=10.0.23.1
+EOF
+
+systemctl enable systemd-networkd
+systemctl restart systemd-networkd
+
+echo "Host2 setup complete. Webmin available via ${WEBAPP_HOST}${WEBMIN_WEBPREFIX}."

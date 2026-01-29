@@ -9,6 +9,11 @@
 - `net*.xml` - definicja sieci dla virt-managera
 - `new-host-script.sh` - skrypt do początkowej konfiguracji hosta
 - `host*-skrypt.sh` - skrypt który powinien w teorii na czystym obrazie debian postawić to co znajduje się w golden image, po wykonaniu początkowej konfiguracji 
+  - `host0` - attacker (NAT + net01)
+  - `host1` - webapp (net01 + net12)
+  - `host2` - webmin (net12 + net23)
+  - `host3` - postgres (net23 + net34)
+  - `host4` - log4shell (net34)
 
 ## Uruchomienie gotowego środowiska
 
@@ -75,4 +80,3 @@ Używając skryptu lub pojedyńczych poleceń należy skonfigurować maszynę
 ### 4. Zapisanie gold-image i stworzenie work
 
 Po konfiguracji, maszynę z virt-managera należy usunąć, zmienić uprawnienia pliku na read_only i dodać do `virt-install-script.sh` jak dla innych maszyn
-
