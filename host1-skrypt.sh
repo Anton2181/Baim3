@@ -98,7 +98,7 @@ Wants=network-online.target
 Type=simple
 WorkingDirectory=${APP_DIR}
 Environment=PATH=${APP_DIR}/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart=${APP_DIR}/.venv/bin/python ${APP_DIR}/scripts/run.sh
+ExecStart=/usr/bin/env bash ${APP_DIR}/scripts/run.sh
 Restart=on-failure
 RestartSec=3
 
