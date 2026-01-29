@@ -113,9 +113,9 @@ configure_apache() {
         RequestHeader set X-Forwarded-Host "${WEBAPP_IP}"
         RequestHeader set X-Forwarded-Port "80"
 
-        Header edit Location "^http://${WEBMIN_HOST}:${WEBMIN_PORT}(/.*)?$" "/admin/infra$1"
-        Header edit Location "^http://${WEBAPP_IP}:${WEBMIN_PORT}(/.*)?$" "/admin/infra$1"
-        Header edit Location "^/(?!admin/infra)(.*)$" "/admin/infra/$1"
+        Header edit Location "^http://${WEBMIN_HOST}:${WEBMIN_PORT}(/.*)?$" "/admin/infra\\$1"
+        Header edit Location "^http://${WEBAPP_IP}:${WEBMIN_PORT}(/.*)?$" "/admin/infra\\$1"
+        Header edit Location "^/(?!admin/infra)(.*)$" "/admin/infra/\\$1"
     </Location>
 
     # --- WEBAPP ---
