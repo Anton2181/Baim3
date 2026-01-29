@@ -98,7 +98,30 @@ if [[ -f /etc/webmin/xterm/config ]]; then
 fi
 
 if command -v systemctl >/dev/null 2>&1; then
-  systemctl restart webmin >/dev/null 2>&1 || true
+  if systemctl list-unit-files | grep -q '^webmin\.service'; then
+    systemctl restart webmin >/dev/null 2>&1 || true
+  else
+    cat >/etc/systemd/system/webmin.service <<'EOF'
+[Unit]
+Description=Webmin server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=forking
+ExecStart=/etc/webmin/start
+ExecReload=/etc/webmin/restart
+ExecStop=/etc/webmin/stop
+PIDFile=/var/webmin/miniserv.pid
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl daemon-reload
+    systemctl enable --now webmin.service >/dev/null 2>&1 || true
+  fi
 elif [[ -x /etc/init.d/webmin ]]; then
   /etc/init.d/webmin restart >/dev/null 2>&1 || true
 elif [[ -x /etc/webmin/restart ]]; then
